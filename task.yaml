@@ -1,0 +1,61 @@
+---
+- name: build in maven
+  hosts: build
+  become: yes
+
+  tasks:
+  - name: Ensure git package is present
+    apt:
+      name: git
+      state: present
+
+  - name: Ensure maven package is present
+    apt:
+      name: maven
+      state: present
+  - name: git clone
+    git:
+      repo: 'https://github.com/boxfuse/boxfuse-sample-java-war-hello.git'
+      dest: /home/boxfuse-sample-java-war-hello/
+      clone: yes
+      #  - name: Ensure maven is started
+      #service:
+      #name: maven
+      #state: started
+
+  - name: Change the working directory and execute maven build
+    shell: mvn package
+    args:
+      chdir: /home/boxfuse-sample-java-war-hello/
+
+  - name: Specifying a destination path
+    fetch:
+      src: "/home/boxfuse-sample-java-war-hello/target/hello-1.0.war"
+      dest: /root/second/
+      flat: yes
+
+
+- name: expose in tomcat
+  hosts: tomcat
+  become: yes
+
+  tasks:
+  - name: Ensure tomcat is present
+    apt:
+      name: tomcat8
+      state: present
+
+  - name: Ensure default-jdk is present
+    apt:
+      name: default-jdk
+      state: present
+
+  - name: Copy WAR file from host to remote vm
+    copy:
+      src: /root/second/hello-1.0.war
+      dest: /var/lib/tomcat8/webapps/
+  - name: Ensure tomcat8 is started
+    service:
+      name: tomcat8
+      state: started
+      #ansible-playbook -i hosts task.yaml 
